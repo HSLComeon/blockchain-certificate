@@ -1,106 +1,69 @@
 package com.certificate.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.certificate.common.api.ResultCode;
-import com.certificate.common.exception.BusinessException;
-import com.certificate.dto.AdminLoginDTO;
-import com.certificate.dto.AdminRegisterDTO;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.certificate.common.constant.Constants;
 import com.certificate.entity.Admin;
 import com.certificate.mapper.AdminMapper;
 import com.certificate.service.AdminService;
 import com.certificate.util.JwtUtil;
+import com.certificate.vo.admin.AdminInfoVO;
+import com.certificate.vo.admin.AdminLoginVO;
 import org.springframework.beans.BeanUtils;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
-public class AdminServiceImpl implements AdminService {
+public class AdminServiceImpl extends ServiceImpl<AdminMapper, Admin> implements AdminService {
 
-    private final AdminMapper adminMapper;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    public AdminServiceImpl(AdminMapper adminMapper,
-                            PasswordEncoder passwordEncoder,
-                            AuthenticationManager authenticationManager,
-                            JwtUtil jwtUtil) {
-        this.adminMapper = adminMapper;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-    }
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
-    public Map<String, String> login(AdminLoginDTO adminLoginDTO) {
-        // 进行身份验证
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        adminLoginDTO.getUsername(),
-                        adminLoginDTO.getPassword()
-                )
-        );
+    public AdminInfoVO login(AdminLoginVO loginVO) {
+        // 根据用户名查询管理员
+        Admin admin = getByUsername(loginVO.getUsername());
+        System.out.println("查询用户: " + loginVO.getUsername() + ", 结果: " + (admin != null ? "存在" : "不存在"));
 
-        // 生成token
-        String token = jwtUtil.generateToken(adminLoginDTO.getUsername(), "ADMIN");
-
-        Map<String, String> tokenMap = new HashMap<>();
-        tokenMap.put("token", token);
-        return tokenMap;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void register(AdminRegisterDTO adminRegisterDTO) {
-        // 检查用户名是否已存在
-        if (isUsernameExists(adminRegisterDTO.getUsername())) {
-            throw new BusinessException(ResultCode.USERNAME_EXIST.getMessage());
+        if (admin == null) {
+            throw new RuntimeException("用户名或密码错误");
         }
 
-        // 创建新管理员
-        Admin admin = new Admin();
-        BeanUtils.copyProperties(adminRegisterDTO, admin);
+        // 输出密码信息以便调试
+        System.out.println("输入密码: " + loginVO.getPassword());
+        System.out.println("数据库密码: " + admin.getPassword());
 
-        // 加密密码
-        admin.setPassword(passwordEncoder.encode(adminRegisterDTO.getPassword()));
+        // 校验密码
+        boolean matches = passwordEncoder.matches(loginVO.getPassword(), admin.getPassword());
+        System.out.println("密码匹配结果: " + matches);
 
-        // 保存到数据库
-        adminMapper.insert(admin);
+        if (!matches) {
+            throw new RuntimeException("用户名或密码错误");
+        }
+
+        // 校验管理员状态
+        if (Constants.UserStatus.DISABLED == admin.getStatus()) {
+            throw new RuntimeException("账号已被禁用");
+        }
+
+        // 生成token
+        String token = jwtUtil.generateToken(admin.getId(), Constants.LoginType.ADMIN);
+
+        // 转换为VO
+        AdminInfoVO adminInfoVO = new AdminInfoVO();
+        BeanUtils.copyProperties(admin, adminInfoVO);
+        adminInfoVO.setToken(token);
+
+        return adminInfoVO;
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        // 获取当前登录用户
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        // 查询用户信息
-        Admin admin = getAdminByUsername(username);
-
-        Map<String, Object> info = new HashMap<>();
-        info.put("username", admin.getUsername());
-        info.put("role", "ADMIN");
-        return info;
-    }
-
-    @Override
-    public Admin getAdminByUsername(String username) {
+    public Admin getByUsername(String username) {
         LambdaQueryWrapper<Admin> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Admin::getUsername, username);
-        return adminMapper.selectOne(wrapper);
-    }
-
-    private boolean isUsernameExists(String username) {
-        LambdaQueryWrapper<Admin> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Admin::getUsername, username);
-        return adminMapper.selectCount(wrapper) > 0;
+        return getOne(wrapper);
     }
 }
