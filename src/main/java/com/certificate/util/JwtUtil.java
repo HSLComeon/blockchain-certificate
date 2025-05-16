@@ -74,8 +74,12 @@ public class JwtUtil {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
-            return true;
+            Claims claims = Jwts.parser()
+                    .setSigningKey(secret)
+                    .parseClaimsJws(token)
+                    .getBody();
+            // 检查token是否过期
+            return !claims.getExpiration().before(new Date());
         } catch (Exception e) {
             return false;
         }

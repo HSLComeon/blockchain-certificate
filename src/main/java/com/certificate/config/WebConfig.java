@@ -16,11 +16,17 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        System.out.println("WebConfig - 配置CORS");
+
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")  // 使用allowedOriginPatterns代替allowedOrigins
+                .allowedOrigins("http://localhost:3000", "http://127.0.0.1:3000",
+                        "http://localhost:5173", "http://127.0.0.1:5173")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(false)
+                .exposedHeaders("Authorization")
+                .allowCredentials(true)
                 .maxAge(3600);
+
+        System.out.println("WebConfig - CORS配置完成");
     }
 }

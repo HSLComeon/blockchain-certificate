@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/api/org/auth")
+@RequestMapping("/org/auth")  // 注意：移除/api前缀
 public class OrgAuthController {
 
     @Autowired
@@ -22,6 +22,7 @@ public class OrgAuthController {
      */
     @PostMapping("/login")
     public ResponseVO<OrgInfoVO> login(@Valid @RequestBody OrgLoginVO loginVO) {
+        System.out.println("OrgAuthController - 收到登录请求: " + loginVO.getUsername());
         OrgInfoVO orgInfoVO = organizationService.login(loginVO);
         return ResponseVO.success("登录成功", orgInfoVO);
     }
@@ -31,6 +32,7 @@ public class OrgAuthController {
      */
     @PostMapping("/register")
     public ResponseVO<Boolean> register(@Valid @RequestBody OrgRegisterVO registerVO) {
+        System.out.println("OrgAuthController - 收到注册请求: " + registerVO.getUsername());
         boolean result = organizationService.register(registerVO);
         return ResponseVO.success("注册成功", result);
     }

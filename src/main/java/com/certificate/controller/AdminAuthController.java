@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/api/admin/auth")
+@RequestMapping("/admin/auth")  // 注意：移除/api前缀
 public class AdminAuthController {
 
     @Autowired
@@ -22,6 +22,7 @@ public class AdminAuthController {
      */
     @PostMapping("/login")
     public ResponseVO<AdminInfoVO> login(@Valid @RequestBody AdminLoginVO loginVO) {
+        System.out.println("AdminAuthController - 收到登录请求: " + loginVO.getUsername());
         AdminInfoVO adminInfoVO = adminService.login(loginVO);
         return ResponseVO.success("登录成功", adminInfoVO);
     }
@@ -31,6 +32,7 @@ public class AdminAuthController {
      */
     @PostMapping("/register")
     public ResponseVO<Boolean> register(@Valid @RequestBody AdminRegisterVO registerVO) {
+        System.out.println("AdminAuthController - 收到注册请求: " + registerVO.getUsername());
         boolean result = adminService.register(registerVO);
         return ResponseVO.success("注册成功", result);
     }

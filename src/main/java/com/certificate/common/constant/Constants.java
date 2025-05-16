@@ -36,4 +36,29 @@ public class Constants {
          */
         String ADMIN = "admin";
     }
+
+    /**
+     * 机构状态
+     */
+    public interface OrganizationStatus {
+        /**
+         * 待审核
+         */
+        int PENDING = 0;
+
+        /**
+         * 已通过
+         */
+        int APPROVED = 1;
+
+        /**
+         * 已拒绝
+         */
+        int REJECTED = 2;
+
+        /**
+         * 已禁用
+         */
+        int DISABLED = 3;
+    }
 }
