@@ -61,4 +61,38 @@ public class Constants {
          */
         int DISABLED = 3;
     }
+    /**
+     * 证书类型状态
+     */
+    public interface CertificateTypeStatus {
+        /**
+         * 禁用
+         */
+        int DISABLED = 0;
+
+        /**
+         * 启用
+         */
+        int ENABLED = 1;
+    }
+
+    /**
+     * 证书状态
+     */
+    public interface CertificateStatus {
+        /**
+         * 待审核
+         */
+        int PENDING = 0;
+
+        /**
+         * 已上链
+         */
+        int ISSUED = 1;
+
+        /**
+         * 已拒绝
+         */
+        int REJECTED = 2;
+    }
 }
