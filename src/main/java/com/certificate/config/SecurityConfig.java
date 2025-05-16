@@ -35,10 +35,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                // 注意：这里放行认证接口
-                .antMatchers("/admin/auth/**", "/org/auth/**", "/user/auth/**").permitAll()
-                // 临时放行所有admin和org相关接口，后续将添加完整JWT验证
-                .antMatchers("/admin/**", "/org/**").permitAll()
+                // 放行不需要认证的路径
+                .antMatchers("/api/admin/auth/**", "/api/org/auth/**", "/api/user/auth/**").permitAll()
+                .antMatchers("/admin/auth/**", "/org/auth/**", "/user/auth/**").permitAll() // 也放行不带/api前缀的路径
+                // 临时放行所有admin和org相关接口
+                .antMatchers("/api/admin/**", "/api/org/**").permitAll()
+                .antMatchers("/admin/**", "/org/**").permitAll() // 也放行不带/api前缀的路径
+                // 公共API接口
+                .antMatchers("/api/public/**", "/public/**").permitAll()
                 // 允许OPTIONS请求
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // 其他请求需要认证
@@ -50,7 +54,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // 添加JWT过滤器
         http.addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        System.out.println("SecurityConfig - 已放行路径: /admin/auth/**, /org/auth/**, /user/auth/**, /admin/**, /org/**");
+        System.out.println("SecurityConfig - 已放行路径: /api/admin/auth/**, /api/org/auth/**, /api/user/auth/**, /api/admin/**, /api/org/**");
     }
 
     @Bean

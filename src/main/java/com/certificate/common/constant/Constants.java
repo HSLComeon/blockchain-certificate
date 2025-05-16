@@ -79,20 +79,20 @@ public class Constants {
     /**
      * 证书状态
      */
-    public interface CertificateStatus {
+    public static class CertificateStatus {
         /**
-         * 待审核
+         * 待上链
          */
-        int PENDING = 0;
+        public static final int PENDING = 0;
 
         /**
          * 已上链
          */
-        int ISSUED = 1;
+        public static final int ON_CHAIN = 1;
 
         /**
-         * 已拒绝
+         * 已撤销
          */
-        int REJECTED = 2;
+        public static final int REVOKED = 2;
     }
 }
