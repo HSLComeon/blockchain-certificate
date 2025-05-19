@@ -243,45 +243,16 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
 
     @Override
     public CertificateVerifyResultVO verifyCertificate(CertificateVerifyVO verifyVO) {
-        // 根据证书编号查询证书
-        Certificate certificate = baseMapper.getByCertNo(verifyVO.getCertNo());
-        if (certificate == null) {
-            return CertificateVerifyResultVO.failure("证书不存在");
-        }
-
-        // 检查证书状态
-        if (certificate.getStatus() == Constants.CertificateStatus.REVOKED) {
-            return CertificateVerifyResultVO.failure("证书已被撤销");
-        }
-
-        // 验证哈希
-        if (!certificate.getHash().equals(verifyVO.getHash())) {
-            return CertificateVerifyResultVO.failure("证书哈希不匹配");
-        }
-
-        // 如果证书已上链，调用区块链验证
-        if (certificate.getStatus() == Constants.CertificateStatus.ON_CHAIN) {
-            boolean verifyResult = blockchainService.verifyCertificate(verifyVO.getCertNo(), verifyVO.getHash());
-            if (!verifyResult) {
-                return CertificateVerifyResultVO.failure("区块链验证失败");
-            }
-        }
-
-        // 获取完整证书信息
-        CertificateVO certificateVO = getCertificateDetail(certificate.getId());
-        return CertificateVerifyResultVO.success(certificateVO);
+        // 由于数据库中没有cert_no列，此方法需要修改
+        // 可以临时返回错误信息
+        return CertificateVerifyResultVO.failure("由于数据库表结构限制，暂不支持证书验证功能");
     }
 
     @Override
     public CertificateVO getCertificateByCertNo(String certNo) {
-        Certificate certificate = baseMapper.getByCertNo(certNo);
-        if (certificate == null) {
-            throw new RuntimeException("证书不存在");
-        }
-
-        return getCertificateDetail(certificate.getId());
+        // 由于数据库中没有cert_no列，此方法暂时不可用
+        throw new RuntimeException("由于数据库表结构限制，暂不支持此功能");
     }
-
     @Override
     public String generateQRCode(Long id) {
         Certificate certificate = getById(id);
@@ -379,5 +350,30 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
         }
 
         return vo;
+    }
+    // 在CertificateServiceImpl.java文件的末尾添加这些方法
+
+    @Override
+    public int countByOrgId(Long orgId) {
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getOrgId, orgId);
+        return (int) count(wrapper);
+    }
+
+    @Override
+    public int countByOrgIdAndStatus(Long orgId, Integer status) {
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getOrgId, orgId)
+                .eq(Certificate::getStatus, status);
+        return (int) count(wrapper);
+    }
+
+    @Override
+    public List<Long> getCertificateIdsByOrgId(Long orgId) {
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getOrgId, orgId)
+                .select(Certificate::getId);
+        List<Object> objects = listObjs(wrapper);
+        return objects.stream().map(obj -> (Long) obj).collect(Collectors.toList());
     }
 }

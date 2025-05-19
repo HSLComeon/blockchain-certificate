@@ -1,3 +1,4 @@
+// blockchain-certificate/src/main/java/com/certificate/entity/User.java
 package com.certificate.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -30,6 +31,9 @@ public class User implements Serializable {
     private String email;
 
     private String gender;
+
+    // 添加机构ID字段
+    private Long orgId;
 
     /**
      * 状态：0-禁用，1-启用

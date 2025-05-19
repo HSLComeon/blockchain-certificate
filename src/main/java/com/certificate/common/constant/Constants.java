@@ -1,3 +1,4 @@
+// blockchain-certificate/src/main/java/com/certificate/common/constant/Constants.java
 package com.certificate.common.constant;
 
 public class Constants {
@@ -61,6 +62,7 @@ public class Constants {
          */
         int DISABLED = 3;
     }
+
     /**
      * 证书类型状态
      */
@@ -94,5 +96,55 @@ public class Constants {
          * 已撤销
          */
         public static final int REVOKED = 2;
+    }
+
+    /**
+     * 申请状态常量
+     */
+    public static class ApplicationStatus {
+        /**
+         * 待审核
+         */
+        public static final int PENDING = 0;
+
+        /**
+         * 已批准
+         */
+        public static final int APPROVED = 1;
+
+        /**
+         * 已拒绝
+         */
+        public static final int REJECTED = 2;
+
+        /**
+         * 已取消
+         */
+        public static final int CANCELED = 3;
+    }
+
+    /**
+     * 注销状态常量
+     */
+    public static class RevocationStatus {
+        /**
+         * 待审核
+         */
+        public static final int PENDING = 0;
+
+        /**
+         * 已批准
+         */
+        public static final int APPROVED = 1;
+
+        /**
+         * 已拒绝
+         */
+        public static final int REJECTED = 2;
+
+        /**
+         * 已取消
+         */
+        public static final int CANCELED = 3;
     }
 }

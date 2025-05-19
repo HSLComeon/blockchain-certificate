@@ -11,11 +11,10 @@ public interface CertificateMapper extends BaseMapper<Certificate> {
 
     /**
      * 根据证书编号查询证书
-     * @param certNo 证书编号
-     * @return 证书
+     * 暂时注释掉此方法，因为数据库中没有cert_no列
      */
-    @Select("SELECT * FROM certificate WHERE cert_no = #{certNo}")
-    Certificate getByCertNo(@Param("certNo") String certNo);
+    // @Select("SELECT * FROM certificate WHERE cert_no = #{certNo}")
+    // Certificate getByCertNo(@Param("certNo") String certNo);
 
     /**
      * 统计机构已发放的证书数量

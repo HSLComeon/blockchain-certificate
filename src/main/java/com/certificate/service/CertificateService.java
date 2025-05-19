@@ -1,3 +1,4 @@
+// blockchain-certificate/src/main/java/com/certificate/service/CertificateService.java
 package com.certificate.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -83,4 +84,26 @@ public interface CertificateService extends IService<Certificate> {
      * @return 证书数量
      */
     int countCertificates(Long orgId);
+
+    /**
+     * 根据机构ID统计证书数量
+     * @param orgId 机构ID
+     * @return 证书数量
+     */
+    int countByOrgId(Long orgId);
+
+    /**
+     * 根据机构ID和状态统计证书数量
+     * @param orgId 机构ID
+     * @param status 状态
+     * @return 证书数量
+     */
+    int countByOrgIdAndStatus(Long orgId, Integer status);
+
+    /**
+     * 根据机构ID获取该机构的所有证书ID
+     * @param orgId 机构ID
+     * @return 证书ID列表
+     */
+    List<Long> getCertificateIdsByOrgId(Long orgId);
 }

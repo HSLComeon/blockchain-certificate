@@ -10,6 +10,7 @@ spring:
   application:
     name: blockchain-certificate
 
+
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -19,11 +20,14 @@ spring:
 
   # Jackson配置
   jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
+    date-format: yyyy-MM-dd
     time-zone: GMT+8
     serialization:
       write-dates-as-timestamps: false
-
+    deserialization:
+      fail-on-unknown-properties: false
+      accept-empty-string-as-null-object: true
+      accept-single-value-as-array: true
   # 文件上传配置
   servlet:
     multipart:
