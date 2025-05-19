@@ -122,7 +122,7 @@ public class CertificateController {
                     orgId,
                     IpUtil.getIpAddress(request),
                     "success",
-                    "证书ID" + id + "已成功上链，交易哈希：" //+ certificateVO.getTxHash()
+                    "证书ID" + id + "已成功上链，交易哈希：" + certificateVO.getBlockchainTxHash()
             );
 
             return ResponseVO.success("上链成功", certificateVO);
@@ -131,7 +131,6 @@ public class CertificateController {
             return ResponseVO.error("上链失败: " + e.getMessage());
         }
     }
-
     /**
      * 批量上链
      */

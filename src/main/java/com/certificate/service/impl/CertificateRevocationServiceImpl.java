@@ -188,7 +188,7 @@ public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRev
 
                 // 获取证书信息（简化处理，仅获取certNo作为标识）
                 Certificate certificate = certificateService.getById(rev.getCertificateId());
-                map.put("certNo", certificate != null ? certificate.getCertNo() : "未知证书");
+                map.put("certNo", certificate != null ? certificate.getCertificateNo() : "未知证书");
 
                 result.add(map);
             }

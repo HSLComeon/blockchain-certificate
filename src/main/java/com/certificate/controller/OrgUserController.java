@@ -1,6 +1,6 @@
-// blockchain-certificate/src/main/java/com/certificate/controller/OrgUserController.java
 package com.certificate.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.certificate.common.constant.Constants;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/org/users")
@@ -222,4 +223,32 @@ public class OrgUserController {
         }
     }
 
+    /**
+     * 获取机构下的有效用户列表(简化版)
+     * @param request HTTP请求
+     * @return 用户列表
+     */
+    @GetMapping("/valid")
+    public ResponseVO<List<User>> getValidUsers(HttpServletRequest request) {
+        // 获取当前机构ID
+        Long orgId = jwtUtil.getUserIdFromRequest(request);
+        if (orgId == null) {
+            return ResponseVO.error("未登录或Token无效");
+        }
+
+        // 查询该机构下的有效用户
+        List<User> users = userService.list(
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getOrgId, orgId)
+                        .eq(User::getStatus, Constants.UserStatus.ENABLED)
+                        .orderByDesc(User::getCreateTime)
+        );
+
+        // 处理敏感信息
+        for (User user : users) {
+            user.setPassword(null);
+        }
+
+        return ResponseVO.success("获取有效用户列表成功", users);
+    }
 }

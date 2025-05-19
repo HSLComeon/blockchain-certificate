@@ -1,6 +1,5 @@
 package com.certificate.vo.certificate;
 
-import com.certificate.entity.Certificate;
 import com.certificate.entity.CertificateType;
 import com.certificate.entity.Organization;
 import lombok.Data;

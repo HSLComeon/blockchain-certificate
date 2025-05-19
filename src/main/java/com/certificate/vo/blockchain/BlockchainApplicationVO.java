@@ -1,6 +1,7 @@
-// src/main/java/com/certificate/vo/blockchain/BlockchainApplicationVO.java
+// blockchain-certificate/src/main/java/com/certificate/vo/blockchain/BlockchainApplicationVO.java
 package com.certificate.vo.blockchain;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -14,11 +15,9 @@ public class BlockchainApplicationVO {
 
     private Long certificateId;
 
-    private String certNo;
+    private String certificateNo;
 
-    private String certTitle;
-
-    private String holderName;
+    private String certificateTitle;
 
     private Long orgId;
 
@@ -26,12 +25,16 @@ public class BlockchainApplicationVO {
 
     private Integer status;
 
+    private String statusName;
+
     private String reason;
 
     private String rejectReason;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime applyTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime reviewTime;
 
     private Long reviewerId;

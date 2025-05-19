@@ -22,7 +22,7 @@ public class BlockchainServiceImpl implements BlockchainService {
 
             // 生成一个随机的交易哈希
             String txHash = "0x" + UUID.randomUUID().toString().replace("-", "");
-            System.out.println("证书 " + certificate.getCertNo() + " 上链成功，交易哈希: " + txHash);
+            System.out.println("证书 " + certificate.getCertificateNo() + " 上链成功，交易哈希: " + txHash);
 
             return txHash;
         } catch (InterruptedException e) {
@@ -62,7 +62,7 @@ public class BlockchainServiceImpl implements BlockchainService {
 
             // 生成一个随机的交易哈希
             String txHash = "0x" + UUID.randomUUID().toString().replace("-", "");
-            System.out.println("证书 " + certificate.getCertNo() + " 撤销成功，交易哈希: " + txHash);
+            System.out.println("证书 " + certificate.getCertificateNo() + " 撤销成功，交易哈希: " + txHash);
 
             return txHash;
         } catch (InterruptedException e) {

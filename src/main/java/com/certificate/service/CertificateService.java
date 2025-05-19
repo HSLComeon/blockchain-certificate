@@ -85,6 +85,8 @@ public interface CertificateService extends IService<Certificate> {
      */
     int countCertificates(Long orgId);
 
+    int countCertificatesByStatus(Long orgId, Integer status);
+
     /**
      * 根据机构ID统计证书数量
      * @param orgId 机构ID
