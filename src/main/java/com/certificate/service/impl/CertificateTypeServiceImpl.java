@@ -128,4 +128,23 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
             certificateType.setAttributeList(List.of());
         }
     }
+
+    // blockchain-certificate/src/main/java/com/certificate/service/impl/CertificateTypeServiceImpl.java
+// 在 CertificateTypeServiceImpl 类中添加以下方法
+
+    @Override
+    public List<CertificateType> getEnabledTypes() {
+        LambdaQueryWrapper<CertificateType> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CertificateType::getStatus, 1); // 1表示启用状态
+        wrapper.orderByDesc(CertificateType::getCreateTime);
+
+        List<CertificateType> types = list(wrapper);
+
+        // 处理属性列表
+        for (CertificateType type : types) {
+            parseAttributes(type);
+        }
+
+        return types;
+    }
 }

@@ -1,3 +1,4 @@
+// blockchain-certificate/src/main/java/com/certificate/service/CertificateTypeService.java
 package com.certificate.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -5,6 +6,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.certificate.entity.CertificateType;
 import com.certificate.vo.certificateType.CertificateTypeCreateVO;
 import com.certificate.vo.certificateType.CertificateTypeUpdateVO;
+
+import java.util.List;
 
 public interface CertificateTypeService extends IService<CertificateType> {
 
@@ -37,4 +40,10 @@ public interface CertificateTypeService extends IService<CertificateType> {
      * @return 是否成功
      */
     boolean deleteCertificateType(Long id);
+
+    /**
+     * 获取所有启用状态的证书类型
+     * @return 证书类型列表
+     */
+    List<CertificateType> getEnabledTypes();
 }
