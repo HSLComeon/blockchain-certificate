@@ -10,22 +10,32 @@ import com.certificate.entity.Certificate;
 import com.certificate.entity.CertificateRevocation;
 import com.certificate.entity.User;
 import com.certificate.mapper.CertificateRevocationMapper;
+import com.certificate.service.BlockchainService;
 import com.certificate.service.CertificateRevocationService;
 import com.certificate.service.CertificateService;
 import com.certificate.service.UserService;
 import com.certificate.vo.certificate.CertificateRevocationVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRevocationMapper, CertificateRevocation>
         implements CertificateRevocationService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CertificateService certificateService;
+
+    @Autowired
+    private BlockchainService blockchainService;
 
     @Override
     public IPage<CertificateRevocationVO> getRevocationList(Integer status, String keyword, Integer pageNum, Integer pageSize) {
@@ -42,14 +52,51 @@ public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRev
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean reviewRevocation(Long id, Integer status, String rejectReason, Long reviewerId) {
         CertificateRevocation revocation = getById(id);
         if (revocation == null) throw new RuntimeException("注销申请不存在");
+
+        // 先检查证书状态
+        Certificate certificate = certificateService.getById(revocation.getCertificateId());
+        if (certificate == null) throw new RuntimeException("证书不存在");
+
+        if (certificate.getStatus() == Constants.CertificateStatus.REVOKED) {
+            revocation.setStatus(Constants.RevocationStatus.APPROVED); // 自动批准
+            revocation.setReviewTime(new Date());
+            revocation.setReviewerId(reviewerId);
+            revocation.setRevocationTime(new Date());
+            return updateById(revocation);
+        }
+
         revocation.setStatus(status);
         revocation.setReviewTime(new Date());
         revocation.setReviewerId(reviewerId);
         revocation.setRejectReason(rejectReason);
-        // 审核通过后可在此处自动撤销证书并上链
+
+        // 审核通过后更新证书状态
+        if (status == Constants.RevocationStatus.APPROVED) {
+            // 如果证书已经上链，则调用区块链服务撤销
+            if (certificate.getStatus() == Constants.CertificateStatus.ON_CHAIN) {
+                try {
+                    String txHash = blockchainService.revokeCertificate(certificate);
+                    revocation.setTxHash(txHash);
+                    certificate.setTxHash(txHash);  // 更新证书交易哈希
+                } catch (Exception e) {
+                    log.error("证书撤销上链失败: {}", e.getMessage());
+                    // 即使上链失败，我们仍然会更新证书状态为已撤销
+                }
+            }
+
+            // 更新证书状态为已撤销
+            certificate.setStatus(Constants.CertificateStatus.REVOKED);
+            certificate.setUpdateTime(new Date());
+            certificateService.updateById(certificate);
+
+            // 记录实际注销时间
+            revocation.setRevocationTime(new Date());
+        }
+
         return updateById(revocation);
     }
 
@@ -70,10 +117,6 @@ public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRev
             default: return "未知";
         }
     }
-    // 在CertificateRevocationServiceImpl.java文件中添加下面的代码
-
-    @Autowired
-    private CertificateService certificateService;
 
     @Override
     public boolean createRevocation(CertificateRevocation revocation) {
@@ -197,8 +240,24 @@ public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRev
         return result;
     }
 
+    @Override
+    public boolean hasActiveRevocation(Long certificateId) {
+        LambdaQueryWrapper<CertificateRevocation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CertificateRevocation::getCertificateId, certificateId)
+                .eq(CertificateRevocation::getStatus, Constants.RevocationStatus.PENDING);
+        return count(wrapper) > 0;
+    }
+
     // 辅助方法：生成注销申请编号
     private String generateRevocationNo() {
         return "REV" + System.currentTimeMillis() + String.format("%04d", new Random().nextInt(10000));
+    }
+
+    // CertificateRevocationServiceImpl.java
+    @Override
+    public CertificateRevocationVO getRevocationDetailVO(Long id) {
+        CertificateRevocation revocation = getById(id);
+        if (revocation == null) return null;
+        return convertToVO(revocation);
     }
 }

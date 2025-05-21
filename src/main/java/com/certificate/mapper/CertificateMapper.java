@@ -36,4 +36,27 @@ public interface CertificateMapper extends BaseMapper<Certificate> {
      */
     @Select("SELECT COUNT(*) FROM certificate WHERE status = 1")
     int countOnChainCertificates();
+
+    /**
+     * 统计用户的证书数量
+     * @param userId 用户ID
+     * @return 证书数量
+     */
+    @Select("SELECT COUNT(*) FROM certificate WHERE user_id = #{userId}")
+    int countByUserId(@Param("userId") Long userId);
+
+    /**
+     * 统计用户特定状态的证书数量
+     * @param userId 用户ID
+     * @param status 证书状态
+     * @return 证书数量
+     */
+    @Select("SELECT COUNT(*) FROM certificate WHERE user_id = #{userId} AND status = #{status}")
+    int countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Integer status);
+
+    /**
+     * 根据证书编号查询证书（兼容ServiceImpl调用）
+     */
+    @Select("SELECT * FROM certificate WHERE certificate_no = #{certificateNo}")
+    Certificate selectByCertificateNo(@Param("certificateNo") String certificateNo);
 }

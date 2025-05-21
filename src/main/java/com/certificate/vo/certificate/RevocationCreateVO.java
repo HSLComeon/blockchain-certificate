@@ -1,4 +1,5 @@
 // blockchain-certificate/src/main/java/com/certificate/vo/certificate/RevocationCreateVO.java
+
 package com.certificate.vo.certificate;
 
 import lombok.Data;
@@ -12,8 +13,7 @@ public class RevocationCreateVO {
     @NotNull(message = "证书ID不能为空")
     private Long certificateId;
 
-    @NotNull(message = "用户ID不能为空")
-    private Long userId;
+    // 移除userId字段，使用证书中的userId
 
     @NotBlank(message = "注销原因不能为空")
     private String reason;

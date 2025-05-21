@@ -17,7 +17,7 @@ import javax.validation.Valid;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/org/blockchain-applications")
+@RequestMapping("/org/blockchain-applications")
 public class OrgBlockchainApplicationController {
 
     @Autowired
@@ -83,9 +83,10 @@ public class OrgBlockchainApplicationController {
      */
     @GetMapping("/{id}")
     public ResponseVO<BlockchainApplicationVO> getApplicationDetail(@PathVariable Long id, HttpServletRequest request) {
-        // 获取当前机构ID
         Long orgId = jwtUtil.getUserIdFromRequest(request);
-        if (orgId == null) {
+        String userType = jwtUtil.getTypeFromRequest(request);
+
+        if (orgId == null && (userType == null || !"admin".equalsIgnoreCase(userType))) {
             return ResponseVO.error("未登录或Token无效");
         }
 
@@ -95,8 +96,8 @@ public class OrgBlockchainApplicationController {
                 return ResponseVO.error("申请记录不存在");
             }
 
-            // 检查是否是当前机构的申请
-            if (!orgId.equals(detail.getOrgId())) {
+            // 允许admin访问所有，org只能看本机构
+            if (!"admin".equalsIgnoreCase(userType) && !orgId.equals(detail.getOrgId())) {
                 return ResponseVO.error("无权查看此申请");
             }
 

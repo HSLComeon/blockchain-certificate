@@ -67,6 +67,23 @@ public class JwtUtil {
         return claims.get("type", String.class);
     }
 
+    // ... existing code ...
+
+    /**
+     * 从请求头中获取用户类型
+     * 用于权限判断（如admin可查看所有申请）
+     */
+    public String getTypeFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            return getTypeFromToken(token); // 复用已有方法
+        }
+        return null;
+    }
+
+// ... existing code ...
+
     /**
      * 校验token
      *

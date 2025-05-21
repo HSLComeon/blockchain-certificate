@@ -1,4 +1,3 @@
-// blockchain-certificate/src/main/java/com/certificate/service/impl/CertificateApplicationServiceImpl.java
 package com.certificate.service.impl;
 
 import com.alibaba.fastjson.JSON;
@@ -70,10 +69,35 @@ public class CertificateApplicationServiceImpl extends ServiceImpl<CertificateAp
         CertificateType type = certificateTypeService.getById(application.getCertificateTypeId());
         if (type != null) vo.setCertificateTypeName(type.getName());
         vo.setStatusText(getStatusText(application.getStatus()));
+
+        // 解析 applicationData
+        Map<String, Object> data;
         try {
-            vo.setApplicationData(JSON.parseObject(application.getApplicationData(), HashMap.class));
+            data = JSON.parseObject(application.getApplicationData(), HashMap.class);
         } catch (Exception e) {
-            vo.setApplicationData(new HashMap<>());
+            data = new HashMap<>();
+        }
+        vo.setApplicationData(data);
+
+        // 补全前端需要的字段
+        if (data != null) {
+            vo.setTitle((String) data.getOrDefault("title", ""));
+            vo.setHolderName((String) data.getOrDefault("holderName", ""));
+            vo.setHolderIdCard((String) data.getOrDefault("holderIdCard", ""));
+            vo.setReason((String) data.getOrDefault("reason", ""));
+            // content 可能是 Map
+            Object contentObj = data.get("content");
+            if (contentObj instanceof Map) {
+                vo.setContent((Map<String, Object>) contentObj);
+            } else if (contentObj instanceof String) {
+                try {
+                    vo.setContent(JSON.parseObject((String) contentObj, HashMap.class));
+                } catch (Exception e) {
+                    vo.setContent(new HashMap<>());
+                }
+            } else {
+                vo.setContent(new HashMap<>());
+            }
         }
         return vo;
     }
@@ -86,7 +110,6 @@ public class CertificateApplicationServiceImpl extends ServiceImpl<CertificateAp
             default: return "未知";
         }
     }
-    // 在CertificateApplicationServiceImpl.java文件中添加以下方法
 
     @Override
     public boolean createApplication(CertificateApplication application) {
@@ -96,7 +119,6 @@ public class CertificateApplicationServiceImpl extends ServiceImpl<CertificateAp
         return save(application);
     }
 
-    // 修改后的CertificateApplicationServiceImpl中的cancelApplication方法
     @Override
     public boolean cancelApplication(Long id, Long userId) {
         CertificateApplication application = getById(id);
@@ -113,7 +135,6 @@ public class CertificateApplicationServiceImpl extends ServiceImpl<CertificateAp
         }
 
         application.setStatus(Constants.ApplicationStatus.CANCELED);
-        // 移除对不存在的updateTime字段的设置
 
         return updateById(application);
     }

@@ -3,13 +3,17 @@ package com.certificate.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.certificate.common.constant.Constants;
 import com.certificate.entity.Organization;
+import com.certificate.service.CertificateService;
 import com.certificate.service.LogService;
 import com.certificate.service.OrganizationService;
+import com.certificate.service.UserService;
 import com.certificate.util.IpUtil;
 import com.certificate.util.JwtUtil;
 import com.certificate.vo.ResponseVO;
 import com.certificate.vo.admin.AdminDashboardVO;
+import com.certificate.vo.org.OrgInfoVO;
 import com.certificate.vo.org.OrgUpdateStatusVO;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +35,11 @@ public class AdminController {
 
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private CertificateService certificateService;
+
+    @Autowired
+    private UserService userService;
 
     /**
      * 获取仪表盘数据
@@ -99,17 +108,29 @@ public class AdminController {
      * 获取机构详情
      */
     @GetMapping("/organizations/{id}")
-    public ResponseVO<Organization> getOrgDetail(@PathVariable Long id) {
-        // 保留原有实现
+    public ResponseVO<OrgInfoVO> getOrgDetail(@PathVariable Long id) {
         System.out.println("AdminController - 获取机构详情: id=" + id);
         try {
             Organization org = organizationService.getById(id);
             if (org == null) {
                 return ResponseVO.error("机构不存在");
             }
-            return ResponseVO.success("获取成功", org);
+
+            // 组装VO
+            OrgInfoVO vo = new OrgInfoVO();
+            BeanUtils.copyProperties(org, vo);
+
+            // 统计数据
+            vo.setCertificates(certificateService.countByOrgId(id));
+            vo.setUsers(userService.countByOrgId(id));
+            vo.setTemplates(0); // 可删除前端模板卡片
+            vo.setLastActive("从未");
+
+            // 新增：最近发放的证书
+            vo.setRecentCertificates(certificateService.getRecentCertificatesByOrgId(id, 5));
+
+            return ResponseVO.success("获取成功", vo);
         } catch (Exception e) {
-            System.err.println("获取机构详情出错: " + e.getMessage());
             e.printStackTrace();
             return ResponseVO.error("获取机构详情失败");
         }

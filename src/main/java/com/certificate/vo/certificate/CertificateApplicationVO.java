@@ -24,4 +24,11 @@ public class CertificateApplicationVO {
     private Date reviewTime;
     private Long reviewerId;
     private String reviewerName;
+
+    // 新增：前端需要的字段
+    private String title;
+    private String holderName;
+    private String holderIdCard;
+    private String reason;
+    private Map<String, Object> content;
 }

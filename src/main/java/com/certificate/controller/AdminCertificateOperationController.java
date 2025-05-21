@@ -8,11 +8,14 @@ import com.certificate.util.JwtUtil;
 import com.certificate.vo.ResponseVO;
 import com.certificate.vo.certificate.CertificateApplicationVO;
 import com.certificate.vo.certificate.CertificateRevocationVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/admin/certificate-operations")
 public class AdminCertificateOperationController {
@@ -61,12 +64,23 @@ public class AdminCertificateOperationController {
     // 审核注销申请
     @PostMapping("/revocations/review")
     public ResponseVO<Boolean> reviewRevocation(
-            @RequestParam Long id,
-            @RequestParam Integer status,
-            @RequestParam(required = false) String rejectReason,
+            @RequestBody Map<String, Object> params,
             HttpServletRequest request) {
+        Long id = Long.valueOf(params.get("id").toString());
+        Integer status = Integer.valueOf(params.get("status").toString());
+        String rejectReason = params.get("rejectReason") != null ? params.get("rejectReason").toString() : null;
         Long reviewerId = jwtUtil.getUserIdFromRequest(request);
         boolean result = revocationService.reviewRevocation(id, status, rejectReason, reviewerId);
         return ResponseVO.success("审核成功", result);
+    }
+
+    // 注销详情
+    @GetMapping("/revocations/{id}")
+    public ResponseVO<CertificateRevocationVO> getRevocationDetail(@PathVariable Long id) {
+        CertificateRevocationVO vo = revocationService.getRevocationDetailVO(id);
+        if (vo == null) {
+            return ResponseVO.error("注销申请不存在");
+        }
+        return ResponseVO.success("获取注销申请详情成功", vo);
     }
 }

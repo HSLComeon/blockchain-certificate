@@ -92,20 +92,27 @@ public class OrgRevocationController {
             return ResponseVO.error("无权为其他机构的证书申请注销");
         }
 
-        // 验证用户是否存在且属于当前机构
-        User user = userService.getById(createVO.getUserId());
-        if (user == null) {
-            return ResponseVO.error("用户不存在");
+        // 检查证书状态
+        if (certificate.getStatus() == 2) {  // 已注销
+            return ResponseVO.error("证书已注销，不能重复申请");
         }
 
-        if (!user.getOrgId().equals(orgId)) {
-            return ResponseVO.error("无权为其他机构的用户申请注销");
+        // 检查是否已有待审核的注销申请
+        if (revocationService.hasActiveRevocation(createVO.getCertificateId())) {
+            return ResponseVO.error("该证书已有待审核的注销申请");
+        }
+
+        // 修复：使用证书中存储的用户ID
+        Long userId = certificate.getUserId();
+        User user = userService.getById(userId);
+        if (user == null) {
+            return ResponseVO.error("证书关联的用户不存在，请联系系统管理员");
         }
 
         // 创建注销申请实体
         CertificateRevocation revocation = new CertificateRevocation();
         revocation.setCertificateId(createVO.getCertificateId());
-        revocation.setUserId(createVO.getUserId());
+        revocation.setUserId(userId); // 使用证书关联的用户ID
         revocation.setReason(createVO.getReason());
 
         try {

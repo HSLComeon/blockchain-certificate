@@ -127,7 +127,11 @@ public class OrgApplicationController {
 
         // 获取当前机构ID
         Long orgId = jwtUtil.getUserIdFromRequest(request);
-        if (orgId == null) {
+        // 获取当前用户类型（admin/org/user）
+        String userType = jwtUtil.getTypeFromRequest(request);
+
+        if (orgId == null && (userType == null || !"admin".equalsIgnoreCase(userType))) {
+            // 既不是机构也不是管理员，直接拒绝
             return ResponseVO.error("未登录或Token无效");
         }
 
@@ -137,8 +141,8 @@ public class OrgApplicationController {
             return ResponseVO.error("申请不存在");
         }
 
-        // 验证申请是否属于当前机构
-        if (!application.getOrgId().equals(orgId)) {
+        // 权限判断：不是本机构且不是管理员，则无权查看
+        if (!"admin".equalsIgnoreCase(userType) && !application.getOrgId().equals(orgId)) {
             return ResponseVO.error("无权查看此申请");
         }
 

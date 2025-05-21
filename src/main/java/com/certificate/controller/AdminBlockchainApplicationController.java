@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/blockchain-applications")
+@RequestMapping("/admin/blockchain-applications")
 public class AdminBlockchainApplicationController {
 
     @Autowired

@@ -14,7 +14,7 @@ import javax.validation.Valid;
  * 证书验证控制器 - 公共API，不需要认证
  */
 @RestController
-@RequestMapping("/api/public/verify")  // 修改了路径前缀
+@RequestMapping("/public/verify")  // 修改了路径前缀
 public class VerifyController {
 
     @Autowired

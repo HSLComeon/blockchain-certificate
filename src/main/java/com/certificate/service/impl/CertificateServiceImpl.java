@@ -1,22 +1,15 @@
 package com.certificate.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.certificate.common.constant.Constants;
-import com.certificate.entity.Certificate;
-import com.certificate.entity.CertificateType;
-import com.certificate.entity.Organization;
-import com.certificate.entity.User;
+import com.certificate.entity.*;
+import com.certificate.event.CertificateCreatedEvent;
 import com.certificate.mapper.CertificateMapper;
-import com.certificate.service.BlockchainService;
-import com.certificate.service.CertificateService;
-import com.certificate.service.CertificateTypeService;
-import com.certificate.service.OrganizationService;
-import com.certificate.service.UserService;
+import com.certificate.service.*;
 import com.certificate.util.QRCodeUtil;
 import com.certificate.vo.certificate.*;
 import com.google.zxing.WriterException;
@@ -25,8 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -47,7 +43,14 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
     private OrganizationService organizationService;
 
     @Autowired
-    private UserService userService; // 添加UserService依赖
+    private UserService userService;
+
+    // 使用事件发布器替代直接依赖
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private CertificateMapper certificateMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -89,6 +92,22 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
 
         // 保存证书
         save(certificate);
+
+        // 在事务提交后发布证书创建事件，触发自动上链申请
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        // 发布证书创建事件
+                        eventPublisher.publishEvent(new CertificateCreatedEvent(certificate.getId(), orgId));
+                        log.info("证书ID:{} 发布创建事件成功", certificate.getId());
+                    } catch (Exception e) {
+                        log.error("证书ID:{} 发布创建事件失败: {}", certificate.getId(), e.getMessage());
+                    }
+                }
+            });
+        }
 
         // 返回证书VO
         CertificateVO certificateVO = convertToVO(certificate);
@@ -277,7 +296,7 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
     @Override
     public CertificateVO getCertificateByCertNo(String certNo) {
         Certificate certificate = getOne(new LambdaQueryWrapper<Certificate>()
-                .eq(Certificate::getCertificateNo, certNo)); // 修改这里，使用getCertificateNo
+                .eq(Certificate::getCertificateNo, certNo));
         return certificate != null ? getCertificateDetail(certificate.getId()) : null;
     }
 
@@ -292,7 +311,7 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
             // 生成二维码内容
             Map<String, Object> qrContent = new HashMap<>();
             qrContent.put("id", certificate.getId());
-            qrContent.put("certNo", certificate.getCertificateNo()); // 修改这里，使用getCertificateNo
+            qrContent.put("certNo", certificate.getCertificateNo());
             qrContent.put("title", certificate.getName());
             qrContent.put("hash", certificate.getHash());
 
@@ -340,7 +359,7 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
         // 实际项目中应该使用更复杂的哈希算法
         // 这里简化处理
         StringBuilder sb = new StringBuilder();
-        sb.append(certificate.getCertificateNo()) // 修改这里，使用getCertificateNo
+        sb.append(certificate.getCertificateNo())
                 .append(certificate.getName())
                 .append(certificate.getCertificateTypeId())
                 .append(certificate.getOrgId())
@@ -389,6 +408,12 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
                 vo.setHolderIdCard(user.getIdCard());
             }
         }
+        if (certificate.getOrgId() != null) {
+            Organization org = organizationService.getById(certificate.getOrgId());
+            if (org != null) {
+                vo.setOrgName(org.getOrgName());
+            }
+        }
 
         return vo;
     }
@@ -418,5 +443,82 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
         return certificates.stream()
                 .map(Certificate::getId)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public int countByUserId(Long userId) {
+        return certificateMapper.countByUserId(userId);
+    }
+
+    @Override
+    public int countOnChainByUserId(Long userId) {
+        return certificateMapper.countByUserIdAndStatus(userId, 2); // 状态2表示已上链
+    }
+
+    @Override
+    public int countRevokedByUserId(Long userId) {
+        return certificateMapper.countByUserIdAndStatus(userId, 3); // 状态3表示已撤销
+    }
+
+    @Override
+    public Certificate getByCertificateNo(String certificateNo) {
+        // 假设你有CertificateMapper
+        return certificateMapper.selectByCertificateNo(certificateNo);
+    }
+
+    @Override
+    public IPage<CertificateVO> getCertificateListByUserId(Long userId, Integer pageNum, Integer pageSize) {
+        // 构造分页对象
+        Page<Certificate> page = new Page<>(pageNum, pageSize);
+        // 构造查询条件：只查当前用户的证书
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getUserId, userId);
+        wrapper.orderByDesc(Certificate::getCreateTime);
+
+        // 查询证书分页数据
+        IPage<Certificate> certificatePage = page(page, wrapper);
+
+        // 转换为VO对象
+        return certificatePage.convert(this::convertToVO);
+    }
+    // ... existing code ...
+    @Override
+    public List<Map<String, Object>> getRecentCertificatesByOrgId(Long orgId, int limit) {
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getOrgId, orgId)
+                .orderByDesc(Certificate::getIssueDate)
+                .last("LIMIT " + limit);
+
+        List<Certificate> certificates = list(wrapper);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Certificate cert : certificates) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", cert.getId());
+            map.put("title", cert.getName());
+            // 获取持有人
+            String holder = "未知";
+            if (cert.getUserId() != null && cert.getUserId() > 0) {
+                User user = userService.getById(cert.getUserId());
+                holder = user != null ? user.getName() : "未知";
+            }
+            map.put("recipient", holder);
+            map.put("time", cert.getIssueDate());
+            result.add(map);
+        }
+        return result;
+    }
+
+    /**
+     * 统计某个证书类型已发放的证书数量
+     * @param typeId 证书类型ID
+     * @return 已发放数量
+     */
+    @Override
+    public int countByTypeId(Long typeId) {
+        // 构造查询条件：证书类型ID等于typeId
+        LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Certificate::getCertificateTypeId, typeId);
+        // 查询并返回数量
+        return (int) count(wrapper);
     }
 }

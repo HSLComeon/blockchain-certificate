@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.certificate.entity.Certificate;
 import com.certificate.entity.CertificateType;
+import com.certificate.mapper.CertificateMapper;
 import com.certificate.mapper.CertificateTypeMapper;
 import com.certificate.service.CertificateTypeService;
 import com.certificate.vo.certificateType.CertificateTypeCreateVO;
@@ -12,6 +14,7 @@ import com.certificate.vo.certificateType.CertificateTypeUpdateVO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -23,6 +26,13 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // 移除 CertificateService 注入，改为注入 CertificateMapper
+    @Autowired
+    private CertificateMapper certificateMapper;
+
+    /**
+     * 分页查询证书类型，并动态统计每种类型的使用数量
+     */
     @Override
     public IPage<CertificateType> getCertificateTypeList(Integer pageNum, Integer pageSize, String keyword) {
         LambdaQueryWrapper<CertificateType> queryWrapper = new LambdaQueryWrapper<>();
@@ -41,14 +51,24 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
         Page<CertificateType> page = new Page<>(pageNum, pageSize);
         IPage<CertificateType> pageResult = page(page, queryWrapper);
 
-        // 处理查询结果，将JSON字符串属性转为List
+        // 处理查询结果，将JSON字符串属性转为List，并动态统计 usageCount
         for (CertificateType certificateType : pageResult.getRecords()) {
+            // 统计该类型已发放证书数量（直接用 Mapper 查询）
+            certificateType.setUsageCount(
+                    certificateMapper.selectCount(
+                            new LambdaQueryWrapper<Certificate>().eq(Certificate::getCertificateTypeId, certificateType.getId())
+                    ).intValue()
+            );
+            // 解析属性
             parseAttributes(certificateType);
         }
 
         return pageResult;
     }
 
+    /**
+     * 创建证书类型
+     */
     @Override
     public CertificateType createCertificateType(CertificateTypeCreateVO createVO) {
         CertificateType certificateType = new CertificateType();
@@ -79,6 +99,9 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
         return certificateType;
     }
 
+    /**
+     * 更新证书类型
+     */
     @Override
     public boolean updateCertificateType(CertificateTypeUpdateVO updateVO) {
         // 查询是否存在
@@ -106,10 +129,12 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
         return updateById(certificateType);
     }
 
+    /**
+     * 删除证书类型
+     */
     @Override
     public boolean deleteCertificateType(Long id) {
         // 可以在这里添加业务逻辑，例如检查该类型是否被使用
-
         return removeById(id);
     }
 
@@ -122,16 +147,17 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
                 certificateType.setAttributeList(objectMapper.readValue(certificateType.getAttributes(), List.class));
             } catch (JsonProcessingException e) {
                 certificateType.setAttributeList(List.of());
-                log.error("解析证书属性失败", e);
+                // log.error("解析证书属性失败", e); // 如有日志对象可打开
             }
         } else {
             certificateType.setAttributeList(List.of());
         }
     }
 
-    // blockchain-certificate/src/main/java/com/certificate/service/impl/CertificateTypeServiceImpl.java
-// 在 CertificateTypeServiceImpl 类中添加以下方法
-
+    /**
+     * 获取所有启用状态的证书类型，并动态统计每种类型的使用数量
+     * @return 证书类型列表
+     */
     @Override
     public List<CertificateType> getEnabledTypes() {
         LambdaQueryWrapper<CertificateType> wrapper = new LambdaQueryWrapper<>();
@@ -140,8 +166,15 @@ public class CertificateTypeServiceImpl extends ServiceImpl<CertificateTypeMappe
 
         List<CertificateType> types = list(wrapper);
 
-        // 处理属性列表
+        // 遍历每个类型，动态统计 usageCount
         for (CertificateType type : types) {
+            // 统计该类型已发放证书数量（直接用 Mapper 查询）
+            type.setUsageCount(
+                    certificateMapper.selectCount(
+                            new LambdaQueryWrapper<Certificate>().eq(Certificate::getCertificateTypeId, type.getId())
+                    ).intValue()
+            );
+            // 解析属性
             parseAttributes(type);
         }
 

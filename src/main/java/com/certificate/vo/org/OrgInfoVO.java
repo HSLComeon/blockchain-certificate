@@ -4,6 +4,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 @Data
 public class OrgInfoVO implements Serializable {
@@ -33,4 +35,11 @@ public class OrgInfoVO implements Serializable {
     private Date createTime;
 
     private String token;
+
+    private Integer certificates;
+    private Integer users;
+    private Integer templates;
+    private String lastActive;
+    // 新增：最近发放的证书
+    private List<Map<String, Object>> recentCertificates; // 新增字段
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -62,6 +63,12 @@ public class CertificateType implements Serializable {
     /**
      * 解析后的属性列表，非数据库字段
      */
+    // 方案1：直接删除
+// @TableField(exist = false)
+// private List<String> attributeList;
+
+// 方案2：如果业务需要用到但不想返回给前端
     @TableField(exist = false)
+    @JsonIgnore
     private List<String> attributeList;
 }

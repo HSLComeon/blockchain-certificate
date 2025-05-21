@@ -40,6 +40,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/admin/auth/**", "/org/auth/**", "/user/auth/**").permitAll() // 也放行不带/api前缀的路径
                 // 临时放行所有admin和org相关接口
                 .antMatchers("/api/admin/**", "/api/org/**").permitAll()
+                // 用户API接口
+                .antMatchers("/api/user/auth/**").permitAll() // 用户认证相关接口放行
+                // 允许已登录的普通用户、管理员、机构管理员访问用户相关接口
+                .antMatchers("/api/user/**").hasAnyRole("USER", "ADMIN", "ORG")
                 .antMatchers("/admin/**", "/org/**").permitAll() // 也放行不带/api前缀的路径
                 // 公共API接口
                 .antMatchers("/api/public/**", "/public/**").permitAll()

@@ -7,6 +7,7 @@ import com.certificate.entity.Certificate;
 import com.certificate.vo.certificate.*;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CertificateService extends IService<Certificate> {
 
@@ -108,4 +109,51 @@ public interface CertificateService extends IService<Certificate> {
      * @return 证书ID列表
      */
     List<Long> getCertificateIdsByOrgId(Long orgId);
+
+    /**
+     * 统计用户的证书总数
+     * @param userId 用户ID
+     * @return 证书数量
+     */
+    int countByUserId(Long userId);
+
+    /**
+     * 统计用户已上链的证书数量
+     * @param userId 用户ID
+     * @return 已上链证书数量
+     */
+    int countOnChainByUserId(Long userId);
+
+    /**
+     * 统计用户已撤销的证书数量
+     * @param userId 用户ID
+     * @return 已撤销证书数量
+     */
+    int countRevokedByUserId(Long userId);
+
+    Certificate getByCertificateNo(String certificateNo);
+
+    /**
+     * 获取指定用户的证书分页列表
+     * @param userId 用户ID
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 证书分页数据
+     */
+    IPage<CertificateVO> getCertificateListByUserId(Long userId, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取机构最近发放的证书
+     * @param orgId 机构ID
+     * @param limit 数量
+     * @return 证书列表
+     */
+    List<Map<String, Object>> getRecentCertificatesByOrgId(Long orgId, int limit);
+
+    /**
+     * 统计某个证书类型已发放的证书数量
+     * @param typeId 证书类型ID
+     * @return 已发放数量
+     */
+    int countByTypeId(Long typeId);
 }
