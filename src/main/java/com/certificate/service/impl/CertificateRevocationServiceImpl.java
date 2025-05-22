@@ -79,7 +79,7 @@ public class CertificateRevocationServiceImpl extends ServiceImpl<CertificateRev
             // 如果证书已经上链，则调用区块链服务撤销
             if (certificate.getStatus() == Constants.CertificateStatus.ON_CHAIN) {
                 try {
-                    String txHash = blockchainService.revokeCertificate(certificate);
+                    String txHash = blockchainService.revokeCertificate(certificate, "");
                     revocation.setTxHash(txHash);
                     certificate.setTxHash(txHash);  // 更新证书交易哈希
                 } catch (Exception e) {

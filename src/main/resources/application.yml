@@ -79,3 +79,15 @@ swagger:
   contact:
     name: Your Name
     email: your.email@example.com
+
+blockchain:
+  ganache:
+    url: http://localhost:7545  # Ganache默认端口
+    gasPrice: 20000000000
+    gasLimit: 6700000
+    privateKey: 351a6094ce111c19d6b3953ccfea6872c014de94c94ce28374b14968b475c22d  # 您提供的Ganache私钥
+  contract:
+    # 自动部署或从环境变量获取
+    address: ${CONTRACT_ADDRESS:}
+    # 是否在启动时自动部署合约（如果地址为空）
+    auto-deploy: true

@@ -231,6 +231,7 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
         // 更新证书状态
         certificate.setTxHash(txHash);
         certificate.setStatus(Constants.CertificateStatus.ON_CHAIN);
+        certificate.setChainTime(new Date());
         certificate.setUpdateTime(new Date());
         updateById(certificate);
 
@@ -269,28 +270,75 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
             throw new RuntimeException("只有已上链的证书可以撤销");
         }
 
+        // 调用区块链服务撤销证书
+        String txHash = blockchainService.revokeCertificate(certificate, revokeVO.getReason());
+
         // 更新证书状态
         certificate.setStatus(Constants.CertificateStatus.REVOKED);
         certificate.setUpdateTime(new Date());
 
-        // 如果是通过区块链撤销，需要调用区块链服务
-        try {
-            // 实际项目中可能需要调用区块链服务进行撤销操作
-            // blockchainService.revokeCertificate(certificate, revokeVO.getReason());
-        } catch (Exception e) {
-            throw new RuntimeException("撤销证书时调用区块链服务失败: " + e.getMessage());
-        }
+        // 保存撤销原因和交易哈希
+        // 如果需要，可以添加撤销原因字段到证书表中
 
         // 更新数据库
         return updateById(certificate);
     }
 
+
     @Override
     public CertificateVerifyResultVO verifyCertificate(CertificateVerifyVO verifyVO) {
-        // 实际项目中需要调用区块链服务验证证书
-        // 这里简化处理，仅检查证书是否存在且已上链
+        CertificateVerifyResultVO resultVO = new CertificateVerifyResultVO();
 
-        return new CertificateVerifyResultVO(); // 简化实现
+        try {
+            // 根据证书编号获取证书 - 修正方法名
+            Certificate certificate = getByCertificateNo(verifyVO.getCertNo());
+            if (certificate == null) {
+                resultVO.setValid(false);
+                resultVO.setErrorMessage("证书不存在");
+                return resultVO;
+            }
+
+            // 从区块链获取证书信息
+            Map<String, Object> blockchainCert = blockchainService.getCertificateFromBlockchain(verifyVO.getCertNo());
+
+            // 检查证书是否存在于区块链上
+            if (blockchainCert == null || blockchainCert.isEmpty()) {
+                resultVO.setValid(false);
+                resultVO.setErrorMessage("证书未上链");
+                return resultVO;
+            }
+
+            // 检查证书是否已撤销
+            boolean isRevoked = (boolean) blockchainCert.get("isRevoked");
+            if (isRevoked) {
+                resultVO.setValid(false);
+                resultVO.setErrorMessage("证书已被撤销：" + blockchainCert.get("revokeReason"));
+                return resultVO;
+            }
+
+            // 检查证书是否过期
+            Date expireDate = (Date) blockchainCert.get("expireDate");
+            if (expireDate != null && expireDate.before(new Date())) {
+                resultVO.setValid(false);
+                resultVO.setErrorMessage("证书已过期");
+                return resultVO;
+            }
+
+            // 验证证书哈希
+            String blockchainHash = (String) blockchainCert.get("hash");
+            boolean hashValid = blockchainHash.equals(certificate.getHash());
+
+            resultVO.setValid(hashValid);
+            resultVO.setErrorMessage(hashValid ? "证书有效" : "证书哈希不匹配");
+            resultVO.setCertificate(convertToVO(certificate));  // 修正方法名
+
+            return resultVO;
+        } catch (Exception e) {
+            log.error("验证证书失败: {}", e.getMessage());
+            resultVO.setValid(false);
+            resultVO.setErrorMessage("验证失败：" + e.getMessage());
+            return resultVO;
+        }
     }
 
     @Override
@@ -520,5 +568,17 @@ public class CertificateServiceImpl extends ServiceImpl<CertificateMapper, Certi
         wrapper.eq(Certificate::getCertificateTypeId, typeId);
         // 查询并返回数量
         return (int) count(wrapper);
+    }
+
+    @Override
+    public int getCertificateCount() {
+        try {
+            // 使用LambdaQueryWrapper来适配不同MyBatis-Plus版本
+            LambdaQueryWrapper<Certificate> wrapper = new LambdaQueryWrapper<>();
+            return Math.toIntExact(count(wrapper));
+        } catch (Exception e) {
+            log.error("Failed to count certificates: {}", e.getMessage());
+            return 0; // 出错时返回0，避免前端显示错误
+        }
     }
 }

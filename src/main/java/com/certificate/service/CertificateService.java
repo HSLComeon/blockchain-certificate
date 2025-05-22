@@ -156,4 +156,10 @@ public interface CertificateService extends IService<Certificate> {
      * @return 已发放数量
      */
     int countByTypeId(Long typeId);
+
+    /**
+     * 获取系统中证书总数
+     * @return 证书总数
+     */
+    int getCertificateCount();
 }
